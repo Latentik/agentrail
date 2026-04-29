@@ -28,5 +28,6 @@
 - [x] Add Apache 2.0 licensing, contributor terms, and release documentation
 - [x] Add standalone binary build support for macOS distribution
 - [x] Add GitHub Actions for CI, tagged releases, PyPI publishing, and Homebrew tap updates
-- [ ] Validate packaging artifacts and document release operations
+- [x] Validate packaging artifacts and document release operations
+- [x] Add automated release-note configuration and commit naming guidance
 - Security: none identified

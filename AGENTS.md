@@ -133,6 +133,13 @@ Create commits regularly throughout the work.
 Make a separate commit for each meaningful, self-contained piece of progress.
 Keep each commit focused, atomic, and clearly scoped.
 
+Use a consistent commit subject convention because release notes and history quality depend on it:
+- prefer Conventional Commit style subjects such as `feat:`, `fix:`, `docs:`, `ci:`, `refactor:`, `test:`, `chore:`
+- keep the subject line imperative and specific
+- keep the first line reasonably short, ideally within 72 characters
+- avoid vague subjects such as `updates`, `changes`, or `misc fixes`
+- if a change is breaking, mark it clearly in the commit subject or body and in PR labeling
+
 Create version tags for significant milestones using the format `yyyy.ww.r`, where:
 - `yyyy` = four-digit year
 - `ww` = ISO week number
