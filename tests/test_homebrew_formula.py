@@ -5,7 +5,7 @@ from scripts.render_homebrew_formula import FORMULA_TEMPLATE
 
 def test_formula_template_contains_arch_sections() -> None:
     assert "on_arm do" in FORMULA_TEMPLATE
-    assert "on_intel do" in FORMULA_TEMPLATE
+    assert "on_intel do" not in FORMULA_TEMPLATE
     assert "agentrail --version" in FORMULA_TEMPLATE
 
 
@@ -18,8 +18,6 @@ def test_formula_render_can_be_formatted_to_path(tmp_path: Path) -> None:
             owner_repo="Latentik/agentrail",
             arm_url="https://example.invalid/arm.tgz",
             arm_sha="a" * 64,
-            intel_url="https://example.invalid/intel.tgz",
-            intel_sha="b" * 64,
         ),
         encoding="utf-8",
     )

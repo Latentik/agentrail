@@ -16,11 +16,6 @@ FORMULA_TEMPLATE = '''class Agentrail < Formula
       url "{arm_url}"
       sha256 "{arm_sha}"
     end
-
-    on_intel do
-      url "{intel_url}"
-      sha256 "{intel_sha}"
-    end
   end
 
   def install
@@ -40,8 +35,6 @@ def main() -> int:
     parser.add_argument("--owner-repo", required=True)
     parser.add_argument("--arm-url", required=True)
     parser.add_argument("--arm-sha", required=True)
-    parser.add_argument("--intel-url", required=True)
-    parser.add_argument("--intel-sha", required=True)
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
@@ -53,8 +46,6 @@ def main() -> int:
             owner_repo=args.owner_repo,
             arm_url=args.arm_url,
             arm_sha=args.arm_sha,
-            intel_url=args.intel_url,
-            intel_sha=args.intel_sha,
         ),
         encoding="utf-8",
     )

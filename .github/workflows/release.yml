@@ -41,15 +41,7 @@ jobs:
 
   build_macos:
     needs: validate
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-13
-            arch: x86_64
-          - os: macos-14
-            arch: arm64
+    runs-on: macos-14
 
     steps:
       - name: Check out code
@@ -76,20 +68,19 @@ jobs:
       - name: Package binary artifact
         env:
           VERSION: ${{ needs.validate.outputs.version }}
-          ARCH: ${{ matrix.arch }}
         run: |
           mkdir -p release
           cp dist/agentrail release/agentrail
-          tar -C release -czf "agentrail-v${VERSION}-macos-${ARCH}.tar.gz" agentrail
-          shasum -a 256 "agentrail-v${VERSION}-macos-${ARCH}.tar.gz" > "agentrail-v${VERSION}-macos-${ARCH}.tar.gz.sha256"
+          tar -C release -czf "agentrail-v${VERSION}-macos-arm64.tar.gz" agentrail
+          shasum -a 256 "agentrail-v${VERSION}-macos-arm64.tar.gz" > "agentrail-v${VERSION}-macos-arm64.tar.gz.sha256"
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-${{ matrix.arch }}
+          name: macos-arm64
           path: |
-            agentrail-v${{ needs.validate.outputs.version }}-macos-${{ matrix.arch }}.tar.gz
-            agentrail-v${{ needs.validate.outputs.version }}-macos-${{ matrix.arch }}.tar.gz.sha256
+            agentrail-v${{ needs.validate.outputs.version }}-macos-arm64.tar.gz
+            agentrail-v${{ needs.validate.outputs.version }}-macos-arm64.tar.gz.sha256
 
   github_release:
     needs:
@@ -97,12 +88,6 @@ jobs:
       - build_macos
     runs-on: ubuntu-latest
     steps:
-      - name: Download Intel macOS artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-x86_64
-          path: dist
-
       - name: Download ARM macOS artifact
         uses: actions/download-artifact@v4
         with:
@@ -130,12 +115,6 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Download Intel macOS artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-x86_64
-          path: dist
-
       - name: Download ARM macOS artifact
         uses: actions/download-artifact@v4
         with:
@@ -153,14 +132,11 @@ jobs:
         run: |
           : "${FORMULA_PATH:=Formula/agentrail.rb}"
           ARM_SHA=$(cut -d ' ' -f 1 "dist/agentrail-v${VERSION}-macos-arm64.tar.gz.sha256")
-          INTEL_SHA=$(cut -d ' ' -f 1 "dist/agentrail-v${VERSION}-macos-x86_64.tar.gz.sha256")
           python scripts/render_homebrew_formula.py \
             --version "${VERSION}" \
             --owner-repo "${OWNER_REPO}" \
             --arm-url "https://github.com/${OWNER_REPO}/releases/download/${TAG_NAME}/agentrail-v${VERSION}-macos-arm64.tar.gz" \
             --arm-sha "${ARM_SHA}" \
-            --intel-url "https://github.com/${OWNER_REPO}/releases/download/${TAG_NAME}/agentrail-v${VERSION}-macos-x86_64.tar.gz" \
-            --intel-sha "${INTEL_SHA}" \
             --output agentrail.rb
           echo "FORMULA_PATH=${FORMULA_PATH}" >> "$GITHUB_ENV"
 

@@ -12,6 +12,10 @@ A tagged release publishes:
 - macOS standalone binaries to GitHub Releases
 - an updated Homebrew formula to the dedicated tap repository
 
+Current distribution target:
+
+- Apple Silicon (`arm64`) only
+
 ## Required GitHub configuration
 
 Repository variables:
