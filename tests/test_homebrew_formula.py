@@ -8,7 +8,8 @@ def test_formula_template_contains_arch_sections() -> None:
     assert "on_intel do" not in FORMULA_TEMPLATE
     assert "agentrail --version" in FORMULA_TEMPLATE
     assert 'libexec.install "agentrail"' in FORMULA_TEMPLATE
-    assert 'bin.install_symlink libexec/"agentrail"/"agentrail" => "agentrail"' in FORMULA_TEMPLATE
+    assert 'if (libexec/"agentrail").directory?' in FORMULA_TEMPLATE
+    assert 'bin.install_symlink executable => "agentrail"' in FORMULA_TEMPLATE
 
 
 
