@@ -4,16 +4,43 @@ version = "0.1.0"
 description = "Portable coding-agent handoff CLI"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [
+  { name = "Latentik" },
+]
+keywords = ["cli", "agent", "handoff", "developer-tools", "llm"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Build Tools",
+  "Topic :: Utilities",
+]
 dependencies = [
   "pydantic>=2.11,<3",
   "typer>=0.16,<1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Latentik/agentrail"
+Repository = "https://github.com/Latentik/agentrail"
+Issues = "https://github.com/Latentik/agentrail/issues"
+Changelog = "https://github.com/Latentik/agentrail/releases"
 
 [project.scripts]
 agentrail = "agentrail.cli:app"
 
 [dependency-groups]
 dev = [
+  "build>=1.2,<2",
+  "pyinstaller>=6.13,<7",
   "pytest>=8.3,<9",
   "ruff>=0.11,<0.12",
 ]

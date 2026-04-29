@@ -7,6 +7,7 @@ from pathlib import Path
 
 import typer
 
+from agentrail import __version__
 from agentrail.agent_registry import AgentRegistry
 from agentrail.config import UserConfig, load_or_create_user_config
 from agentrail.errors import AgentrailError
@@ -16,9 +17,27 @@ from agentrail.models import HandoffContext, SourceDiscoveryResult, WarningRecor
 from agentrail.paths import project_paths
 from agentrail.summary import render_summary
 
-app = typer.Typer(help="Portable coding-agent handoff CLI.")
+app = typer.Typer(
+    add_completion=False,
+    help="Portable coding-agent handoff CLI.",
+)
 continue_app = typer.Typer(help="Generate target-specific continuation context.")
 app.add_typer(continue_app, name="continue")
+
+
+@app.callback(invoke_without_command=True)
+def main(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        help="Print the agentrail version and exit.",
+        is_eager=True,
+    )
+) -> None:
+    """Agentrail CLI."""
+    if version:
+        typer.echo(__version__)
+        raise typer.Exit()
 
 
 @app.command()
@@ -127,6 +146,7 @@ def continue_codex(
     _continue_to_target("codex", print_prompt, no_launch, include_transcript, source)
 
 
+
 def _continue_to_target(
     target: str,
     print_prompt: bool,
@@ -185,6 +205,7 @@ def _continue_to_target(
         raise typer.Exit(code=1)
 
 
+
 def _capture_pipeline(
     cwd: Path,
     include_transcript: bool,
@@ -240,8 +261,11 @@ def _capture_pipeline(
     }
 
 
+
 def _discover_sources(
-    registry: AgentRegistry, repo_root: Path, config: UserConfig
+    registry: AgentRegistry,
+    repo_root: Path,
+    config: UserConfig,
 ) -> list[SourceDiscoveryResult]:
     discoveries: list[SourceDiscoveryResult] = []
     for adapter in registry.all_source_adapters():
@@ -251,8 +275,10 @@ def _discover_sources(
     return discoveries
 
 
+
 def _select_discovery(
-    discoveries: list[SourceDiscoveryResult], source_override: str | None
+    discoveries: list[SourceDiscoveryResult],
+    source_override: str | None,
 ) -> SourceDiscoveryResult | None:
     if source_override:
         for discovery in discoveries:
@@ -268,9 +294,11 @@ def _select_discovery(
     return ranked[0] if ranked else None
 
 
+
 def _confidence_rank(confidence: str) -> int:
     order = {"high": 0, "medium": 1, "low": 2}
     return order.get(confidence, 3)
+
 
 
 def _exit_with_error(message: str) -> int:
