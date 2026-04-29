@@ -18,16 +18,16 @@ def test_build_bundle_packages_onedir_layout(tmp_path: Path) -> None:
     internal_dir.mkdir()
     (internal_dir / "Python").write_text("runtime", encoding="utf-8")
 
-    archive_path, sha_path = build_bundle(dist_dir=dist_dir, output_dir=tmp_path, version="0.1.5")
+    archive_path, sha_path = build_bundle(dist_dir=dist_dir, output_dir=tmp_path, version="0.1.6")
 
-    assert archive_path.name == "agentrail-v0.1.5-macos-arm64.tar.gz"
-    assert sha_path.name == "agentrail-v0.1.5-macos-arm64.tar.gz.sha256"
+    assert archive_path.name == "agentrail-v0.1.6-macos-arm64.tar.gz"
+    assert sha_path.name == "agentrail-v0.1.6-macos-arm64.tar.gz.sha256"
     members = _read_members(archive_path)
     assert "agentrail" in members
     assert "agentrail/_internal" in members
     assert "agentrail/_internal/Python" in members
     assert "agentrail/agentrail" in members
-    assert "agentrail-v0.1.5-macos-arm64.tar.gz" in sha_path.read_text(encoding="utf-8")
+    assert "agentrail-v0.1.6-macos-arm64.tar.gz" in sha_path.read_text(encoding="utf-8")
 
 
 def test_build_bundle_accepts_flat_layout(tmp_path: Path) -> None:
@@ -38,7 +38,7 @@ def test_build_bundle_accepts_flat_layout(tmp_path: Path) -> None:
     internal_dir.mkdir()
     (internal_dir / "Python").write_text("runtime", encoding="utf-8")
 
-    archive_path, _ = build_bundle(dist_dir=dist_dir, output_dir=tmp_path, version="0.1.5")
+    archive_path, _ = build_bundle(dist_dir=dist_dir, output_dir=tmp_path, version="0.1.6")
 
     members = _read_members(archive_path)
     assert "agentrail/_internal/Python" in members

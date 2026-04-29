@@ -19,13 +19,8 @@ FORMULA_TEMPLATE = '''class Agentrail < Formula
   end
 
   def install
-    libexec.install "agentrail"
-    executable = if (libexec/"agentrail").directory?
-      libexec/"agentrail"/"agentrail"
-    else
-      libexec/"agentrail"
-    end
-    bin.install_symlink executable => "agentrail"
+    libexec.install Dir["*"]
+    bin.install_symlink libexec/"agentrail"
   end
 
   test do

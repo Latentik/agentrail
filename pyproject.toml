@@ -1,6 +1,6 @@
 [project]
 name = "agentrail"
-version = "0.1.5"
+version = "0.1.6"
 description = "Portable coding-agent handoff CLI"
 readme = "README.md"
 requires-python = ">=3.11"
