@@ -18,4 +18,4 @@
 ## Epic 4: Validation and Release Hygiene
 - [x] Add pytest coverage for core flows and edge cases
 - [x] Run lint and tests
-- [ ] Create focused commits and milestone tags
+- [x] Create focused commits and milestone tags
