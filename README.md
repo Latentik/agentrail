@@ -15,20 +15,6 @@ brew install agentrail
 
 The dedicated Homebrew tap lives in `Latentik/homebrew-agentrail`, which Homebrew addresses as `Latentik/agentrail`.
 
-### pipx
-
-Recommended for Python users:
-
-```bash
-pipx install agentrail
-```
-
-### pip
-
-```bash
-pip install agentrail
-```
-
 ## Usage
 
 ### Planned MVP flows

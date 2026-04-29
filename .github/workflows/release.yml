@@ -25,7 +25,7 @@ jobs:
       - name: Install project and tooling
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e . pytest ruff build
+          python -m pip install -e . pytest ruff
 
       - name: Validate tag and capture version
         id: version
@@ -38,35 +38,6 @@ jobs:
 
       - name: Test
         run: PYTHONPATH=src pytest -q
-
-      - name: Build Python package
-        run: python -m build
-
-  build_python:
-    needs: validate
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install build tooling
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install build
-
-      - name: Build sdist and wheel
-        run: python -m build
-
-      - name: Upload Python artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-dist
-          path: dist/*
 
   build_macos:
     needs: validate
@@ -123,16 +94,9 @@ jobs:
   github_release:
     needs:
       - validate
-      - build_python
       - build_macos
     runs-on: ubuntu-latest
     steps:
-      - name: Download Python artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: python-dist
-          path: dist
-
       - name: Download Intel macOS artifact
         uses: actions/download-artifact@v4
         with:
@@ -150,25 +114,6 @@ jobs:
         with:
           files: dist/*
           generate_release_notes: true
-
-  publish_pypi:
-    needs:
-      - validate
-      - build_python
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-    steps:
-      - name: Download Python artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: python-dist
-          path: dist
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist/
 
   update_homebrew_tap:
     needs:
