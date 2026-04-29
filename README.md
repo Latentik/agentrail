@@ -13,7 +13,7 @@ brew tap Latentik/agentrail
 brew install agentrail
 ```
 
-If your tap repository uses a different name, follow the instructions from that repository.
+The dedicated Homebrew tap lives in `Latentik/homebrew-agentrail`, which Homebrew addresses as `Latentik/agentrail`.
 
 ### pipx
 

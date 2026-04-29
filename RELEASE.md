@@ -33,7 +33,7 @@ PyPI publishing:
 1. Update `src/agentrail/__init__.py` and `pyproject.toml` to the intended release version.
 2. Merge release-ready changes to `main`.
 3. Create and push a semver tag such as `v0.1.0`.
-4. GitHub Actions will run CI, build Python artifacts, build macOS binaries, create or update the GitHub Release, publish to PyPI, and update the Homebrew tap.
+4. GitHub Actions will run CI, build Python artifacts, build macOS binaries, create or update the GitHub Release, publish to PyPI, and update the `Latentik/homebrew-agentrail` tap.
 
 ## Rollback
 
