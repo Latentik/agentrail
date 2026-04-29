@@ -60,7 +60,7 @@ jobs:
       - name: Build standalone binary
         run: |
           pyinstaller \
-            --onefile \
+            --onedir \
             --name agentrail \
             --paths src \
             src/agentrail/cli.py
@@ -69,9 +69,7 @@ jobs:
         env:
           VERSION: ${{ needs.validate.outputs.version }}
         run: |
-          mkdir -p release
-          cp dist/agentrail release/agentrail
-          tar -C release -czf "agentrail-v${VERSION}-macos-arm64.tar.gz" agentrail
+          tar -C dist -czf "agentrail-v${VERSION}-macos-arm64.tar.gz" agentrail
           shasum -a 256 "agentrail-v${VERSION}-macos-arm64.tar.gz" > "agentrail-v${VERSION}-macos-arm64.tar.gz.sha256"
 
       - name: Upload macOS artifact

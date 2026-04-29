@@ -19,7 +19,8 @@ FORMULA_TEMPLATE = '''class Agentrail < Formula
   end
 
   def install
-    bin.install "agentrail"
+    libexec.install "agentrail"
+    bin.install_symlink libexec/"agentrail"/"agentrail" => "agentrail"
   end
 
   test do

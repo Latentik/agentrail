@@ -4,18 +4,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import typer
 
 from agentrail import __version__
-from agentrail.agent_registry import AgentRegistry
-from agentrail.config import UserConfig, load_or_create_user_config
-from agentrail.errors import AgentrailError
-from agentrail.git_state import capture_git_state
-from agentrail.handoff_writer import ensure_handoff_dirs, write_capture_artifacts
-from agentrail.models import HandoffContext, SourceDiscoveryResult, WarningRecord
-from agentrail.paths import project_paths
-from agentrail.summary import render_summary
+
+if TYPE_CHECKING:
+    from agentrail.agent_registry import AgentRegistry
+    from agentrail.config import UserConfig
+    from agentrail.models import SourceDiscoveryResult
 
 app = typer.Typer(
     add_completion=False,
@@ -61,6 +59,12 @@ def capture() -> None:
 @app.command()
 def status() -> None:
     """Print current repository and handoff status."""
+    from agentrail.agent_registry import AgentRegistry
+    from agentrail.config import load_or_create_user_config
+    from agentrail.errors import AgentrailError
+    from agentrail.git_state import capture_git_state
+    from agentrail.paths import project_paths
+
     try:
         config, config_path, _ = load_or_create_user_config()
         git, files = capture_git_state(Path.cwd())
@@ -154,6 +158,10 @@ def _continue_to_target(
     include_transcript: bool,
     source: str | None,
 ) -> None:
+    from agentrail.errors import AgentrailError
+    from agentrail.handoff_writer import write_capture_artifacts
+    from agentrail.models import HandoffContext
+
     try:
         result = _capture_pipeline(
             Path.cwd(),
@@ -211,6 +219,14 @@ def _capture_pipeline(
     include_transcript: bool,
     source_override: str | None = None,
 ) -> dict[str, object]:
+    from agentrail.agent_registry import AgentRegistry
+    from agentrail.config import load_or_create_user_config
+    from agentrail.git_state import capture_git_state
+    from agentrail.handoff_writer import ensure_handoff_dirs, write_capture_artifacts
+    from agentrail.models import WarningRecord
+    from agentrail.paths import project_paths
+    from agentrail.summary import render_summary
+
     config, _, _ = load_or_create_user_config()
     git, files = capture_git_state(cwd)
     registry = AgentRegistry()

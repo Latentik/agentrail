@@ -16,6 +16,10 @@ Current distribution target:
 
 - Apple Silicon (`arm64`) only
 
+Packaging note:
+
+- the release uses a directory-style macOS bundle instead of a single self-extracting binary to avoid slow startup on simple commands such as `agentrail --help`
+
 ## Required GitHub configuration
 
 Repository variables:

@@ -5,6 +5,7 @@ build/
 dist/
 wheels/
 *.egg-info
+agentrail.spec
 
 # Virtual environments
 .venv
