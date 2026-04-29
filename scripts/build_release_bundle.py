@@ -10,12 +10,18 @@ from pathlib import Path
 
 
 def build_bundle(dist_dir: Path, output_dir: Path, version: str) -> tuple[Path, Path]:
-    binary_path = dist_dir / "agentrail"
-    internal_path = dist_dir / "_internal"
-    if not binary_path.is_file():
-        raise FileNotFoundError(f"Missing PyInstaller binary: {binary_path}")
-    if not internal_path.is_dir():
-        raise FileNotFoundError(f"Missing PyInstaller support directory: {internal_path}")
+    source_bundle = dist_dir / "agentrail"
+    if source_bundle.is_dir():
+        bundle_source_dir = source_bundle
+    else:
+        binary_path = dist_dir / "agentrail"
+        internal_path = dist_dir / "_internal"
+        if binary_path.is_file() and internal_path.is_dir():
+            bundle_source_dir = None
+        else:
+            raise FileNotFoundError(
+                "Missing PyInstaller bundle at dist/agentrail or flat binary/internal layout"
+            )
 
     bundle_root = output_dir / "bundle"
     bundle_dir = bundle_root / "agentrail"
@@ -23,8 +29,11 @@ def build_bundle(dist_dir: Path, output_dir: Path, version: str) -> tuple[Path, 
         shutil.rmtree(bundle_root)
     bundle_dir.mkdir(parents=True)
 
-    shutil.copy2(binary_path, bundle_dir / "agentrail")
-    shutil.copytree(internal_path, bundle_dir / "_internal")
+    if bundle_source_dir is not None:
+        shutil.copytree(bundle_source_dir, bundle_dir, dirs_exist_ok=True)
+    else:
+        shutil.copy2(binary_path, bundle_dir / "agentrail")
+        shutil.copytree(internal_path, bundle_dir / "_internal")
 
     archive_name = f"agentrail-v{version}-macos-arm64.tar.gz"
     archive_path = output_dir / archive_name
