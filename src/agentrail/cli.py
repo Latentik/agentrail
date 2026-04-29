@@ -1,0 +1,282 @@
+"""CLI entrypoint for agentrail."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import typer
+
+from agentrail.agent_registry import AgentRegistry
+from agentrail.config import UserConfig, load_or_create_user_config
+from agentrail.errors import AgentrailError
+from agentrail.git_state import capture_git_state
+from agentrail.handoff_writer import ensure_handoff_dirs, write_capture_artifacts
+from agentrail.models import HandoffContext, SourceDiscoveryResult, WarningRecord
+from agentrail.paths import project_paths
+from agentrail.summary import render_summary
+
+app = typer.Typer(help="Portable coding-agent handoff CLI.")
+continue_app = typer.Typer(help="Generate target-specific continuation context.")
+app.add_typer(continue_app, name="continue")
+
+
+@app.command()
+def init() -> None:
+    """Create local handoff state and capture current project context."""
+    result = _capture_pipeline(Path.cwd(), include_transcript=True)
+    typer.echo(f"Initialized handoff state in {result['handoff_dir']}")
+    for warning in result["warnings"]:
+        typer.echo(f"warning: {warning.message}")
+
+
+@app.command()
+def capture() -> None:
+    """Refresh handoff artifacts for the current repository."""
+    result = _capture_pipeline(Path.cwd(), include_transcript=True)
+    typer.echo(f"Refreshed handoff state in {result['handoff_dir']}")
+    for warning in result["warnings"]:
+        typer.echo(f"warning: {warning.message}")
+
+
+@app.command()
+def status() -> None:
+    """Print current repository and handoff status."""
+    try:
+        config, config_path, _ = load_or_create_user_config()
+        git, files = capture_git_state(Path.cwd())
+    except AgentrailError as exc:
+        raise typer.Exit(code=_exit_with_error(str(exc))) from exc
+
+    registry = AgentRegistry()
+    discoveries = _discover_sources(registry, git.repo_root, config)
+    paths = project_paths(git.repo_root)
+    typer.echo(f"Repo root: {git.repo_root}")
+    typer.echo(f"Branch: {git.branch or 'DETACHED'}")
+    typer.echo(f"HEAD: {git.head or 'No commits yet'}")
+    typer.echo(f"Dirty: {'yes' if git.dirty else 'no'}")
+    typer.echo(f"Changed files: {len(files.changed_files)}")
+    typer.echo(f"Untracked files: {len(files.untracked_files)}")
+    handoff_state = "present" if paths.handoff_dir.exists() else "missing"
+    typer.echo(f"Handoff dir: {paths.handoff_dir} ({handoff_state})")
+    typer.echo(f"User config: {config_path}")
+    typer.echo("Detected source agents:")
+    if discoveries:
+        for discovery in discoveries:
+            selected = str(discovery.selected_session) if discovery.selected_session else "none"
+            typer.echo(f"- {discovery.adapter_name}: {selected}")
+    else:
+        typer.echo("- none")
+    typer.echo("Available targets:")
+    for target in registry.supported_targets():
+        adapter = registry.get_target(target)
+        launch = adapter.discover_launch(config)
+        available = "configured" if launch else "not configured"
+        typer.echo(f"- {target}: {available}")
+
+
+@continue_app.command("gemini")
+def continue_gemini(
+    print_prompt: bool = typer.Option(
+        False,
+        "--print",
+        help="Print the generated prompt to stdout.",
+    ),
+    no_launch: bool = typer.Option(
+        False,
+        "--no-launch",
+        help="Only generate the prompt.",
+    ),
+    include_transcript: bool = typer.Option(
+        True,
+        "--include-transcript/--no-transcript",
+        help="Include transcript recovery when available.",
+    ),
+    source: str | None = typer.Option(
+        None,
+        "--from",
+        help="Explicitly choose a source agent or 'none'.",
+    ),
+) -> None:
+    _continue_to_target("gemini", print_prompt, no_launch, include_transcript, source)
+
+
+@continue_app.command("codex")
+def continue_codex(
+    print_prompt: bool = typer.Option(
+        False,
+        "--print",
+        help="Print the generated prompt to stdout.",
+    ),
+    no_launch: bool = typer.Option(
+        False,
+        "--no-launch",
+        help="Only generate the prompt.",
+    ),
+    include_transcript: bool = typer.Option(
+        True,
+        "--include-transcript/--no-transcript",
+        help="Include transcript recovery when available.",
+    ),
+    source: str | None = typer.Option(
+        None,
+        "--from",
+        help="Explicitly choose a source agent or 'none'.",
+    ),
+) -> None:
+    _continue_to_target("codex", print_prompt, no_launch, include_transcript, source)
+
+
+def _continue_to_target(
+    target: str,
+    print_prompt: bool,
+    no_launch: bool,
+    include_transcript: bool,
+    source: str | None,
+) -> None:
+    try:
+        result = _capture_pipeline(
+            Path.cwd(),
+            include_transcript=include_transcript,
+            source_override=source,
+        )
+        adapter = result["registry"].get_target(target)
+        context = HandoffContext(
+            target=target,
+            project_name=result["git"].repo_root.name,
+            git=result["git"],
+            files=result["files"],
+            summary_markdown=result["summary_markdown"],
+            source_discoveries=result["discoveries"],
+            selected_source=result["selected_discovery"],
+            transcript_excerpt=result["transcript_excerpt"],
+            diff_path=result["handoff_dir"] / "diff.patch",
+            staged_diff_path=result["handoff_dir"] / "staged.diff.patch",
+            handoff_dir=result["handoff_dir"],
+            warnings=result["warnings"],
+        )
+        prompt = adapter.render_prompt(context)
+        prompt_path = result["handoff_dir"] / prompt.filename
+        prompt_path.write_text(prompt.content, encoding="utf-8")
+        write_capture_artifacts(
+            result["project_paths"],
+            result["git"],
+            result["files"],
+            result["summary_markdown"],
+            result["discoveries"],
+            result["transcript_excerpt"],
+            result["warnings"],
+            prompt_paths={target: str(prompt_path.relative_to(result["git"].repo_root))},
+        )
+    except AgentrailError as exc:
+        raise typer.Exit(code=_exit_with_error(str(exc))) from exc
+
+    if print_prompt:
+        typer.echo(prompt.content)
+    typer.echo(f"Generated prompt: {prompt_path}")
+    if no_launch:
+        return
+    launch = adapter.discover_launch(result["config"])
+    launch_result = adapter.launch(prompt_path, prompt.content, launch)
+    if launch_result.command:
+        typer.echo(f"Command: {' '.join(json.dumps(part) for part in launch_result.command)}")
+    typer.echo(launch_result.message)
+    if launch_result.attempted and not launch_result.launched:
+        raise typer.Exit(code=1)
+
+
+def _capture_pipeline(
+    cwd: Path,
+    include_transcript: bool,
+    source_override: str | None = None,
+) -> dict[str, object]:
+    config, _, _ = load_or_create_user_config()
+    git, files = capture_git_state(cwd)
+    registry = AgentRegistry()
+    project = project_paths(git.repo_root)
+    ensure_handoff_dirs(project)
+    discoveries = []
+    if source_override != "none":
+        discoveries = _discover_sources(registry, git.repo_root, config)
+    selected = _select_discovery(discoveries, source_override)
+    transcript_excerpt = None
+    warnings: list[WarningRecord] = []
+    for discovery in discoveries:
+        warnings.extend(discovery.warnings)
+    if include_transcript and selected:
+        adapter = registry.get_target(selected.adapter_name)
+        transcript_excerpt = adapter.extract_excerpt(selected, git.repo_root, config)
+        if transcript_excerpt:
+            warnings.extend(transcript_excerpt.warnings)
+    summary_markdown = render_summary(
+        git.repo_root.name,
+        git,
+        files,
+        discoveries,
+        transcript_excerpt,
+        warnings,
+    )
+    write_capture_artifacts(
+        project,
+        git,
+        files,
+        summary_markdown,
+        discoveries,
+        transcript_excerpt,
+        warnings,
+    )
+    return {
+        "config": config,
+        "registry": registry,
+        "git": git,
+        "files": files,
+        "project_paths": project,
+        "handoff_dir": project.handoff_dir,
+        "discoveries": discoveries,
+        "selected_discovery": selected,
+        "transcript_excerpt": transcript_excerpt,
+        "summary_markdown": summary_markdown,
+        "warnings": warnings,
+    }
+
+
+def _discover_sources(
+    registry: AgentRegistry, repo_root: Path, config: UserConfig
+) -> list[SourceDiscoveryResult]:
+    discoveries: list[SourceDiscoveryResult] = []
+    for adapter in registry.all_source_adapters():
+        discovery = adapter.discover_sources(repo_root, config)
+        if discovery:
+            discoveries.append(discovery)
+    return discoveries
+
+
+def _select_discovery(
+    discoveries: list[SourceDiscoveryResult], source_override: str | None
+) -> SourceDiscoveryResult | None:
+    if source_override:
+        for discovery in discoveries:
+            if discovery.adapter_name == source_override:
+                return discovery
+        return None
+    ranked = sorted(
+        [item for item in discoveries if item.selected_session],
+        key=lambda item: _confidence_rank(
+            item.matched_sessions[0].confidence if item.matched_sessions else "low"
+        ),
+    )
+    return ranked[0] if ranked else None
+
+
+def _confidence_rank(confidence: str) -> int:
+    order = {"high": 0, "medium": 1, "low": 2}
+    return order.get(confidence, 3)
+
+
+def _exit_with_error(message: str) -> int:
+    typer.echo(f"error: {message}", err=True)
+    return 1
+
+
+if __name__ == "__main__":
+    app()
