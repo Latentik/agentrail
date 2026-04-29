@@ -31,3 +31,11 @@
 - [x] Validate packaging artifacts and document release operations
 - [x] Add automated release-note configuration and commit naming guidance
 - Security: none identified
+
+## Epic 6: Ongoing Improvements and New Adapters
+- [x] Implement Claude Code (claude) adapter and prompt renderer
+- [x] Implement OpenCode (opencode) adapter and prompt renderer
+- [x] Improve transcript extraction and handoff fidelity
+- [x] Polish CLI UX with colored output and better status formatting
+- [x] Increase test coverage for CLI flows and new adapters
+- Security: none identified

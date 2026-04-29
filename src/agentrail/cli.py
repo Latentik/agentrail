@@ -42,18 +42,18 @@ def main(
 def init() -> None:
     """Create local handoff state and capture current project context."""
     result = _capture_pipeline(Path.cwd(), include_transcript=True)
-    typer.echo(f"Initialized handoff state in {result['handoff_dir']}")
+    typer.secho(f"Initialized handoff state in {result['handoff_dir']}", fg=typer.colors.GREEN)
     for warning in result["warnings"]:
-        typer.echo(f"warning: {warning.message}")
+        typer.secho(f"warning: {warning.message}", fg=typer.colors.YELLOW)
 
 
 @app.command()
 def capture() -> None:
     """Refresh handoff artifacts for the current repository."""
     result = _capture_pipeline(Path.cwd(), include_transcript=True)
-    typer.echo(f"Refreshed handoff state in {result['handoff_dir']}")
+    typer.secho(f"Refreshed handoff state in {result['handoff_dir']}", fg=typer.colors.GREEN)
     for warning in result["warnings"]:
-        typer.echo(f"warning: {warning.message}")
+        typer.secho(f"warning: {warning.message}", fg=typer.colors.YELLOW)
 
 
 @app.command()
@@ -74,28 +74,37 @@ def status() -> None:
     registry = AgentRegistry()
     discoveries = _discover_sources(registry, git.repo_root, config)
     paths = project_paths(git.repo_root)
-    typer.echo(f"Repo root: {git.repo_root}")
-    typer.echo(f"Branch: {git.branch or 'DETACHED'}")
-    typer.echo(f"HEAD: {git.head or 'No commits yet'}")
-    typer.echo(f"Dirty: {'yes' if git.dirty else 'no'}")
-    typer.echo(f"Changed files: {len(files.changed_files)}")
-    typer.echo(f"Untracked files: {len(files.untracked_files)}")
+    
+    typer.secho("Project Status", fg=typer.colors.CYAN, bold=True)
+    typer.echo(f"  Repo root: {typer.style(str(git.repo_root), fg=typer.colors.BRIGHT_WHITE)}")
+    typer.echo(f"  Branch:    {typer.style(git.branch or 'DETACHED', fg=typer.colors.MAGENTA)}")
+    typer.echo(f"  HEAD:      {typer.style(git.head or 'No commits yet', fg=typer.colors.YELLOW)}")
+    
+    dirty_color = typer.colors.RED if git.dirty else typer.colors.GREEN
+    typer.echo(f"  Dirty:     {typer.style('yes' if git.dirty else 'no', fg=dirty_color)}")
+    
+    typer.echo(f"  Changes:   {len(files.changed_files)} changed, {len(files.untracked_files)} untracked")
+    
     handoff_state = "present" if paths.handoff_dir.exists() else "missing"
-    typer.echo(f"Handoff dir: {paths.handoff_dir} ({handoff_state})")
-    typer.echo(f"User config: {config_path}")
-    typer.echo("Detected source agents:")
+    handoff_color = typer.colors.GREEN if paths.handoff_dir.exists() else typer.colors.RED
+    typer.echo(f"  Handoff:   {typer.style(handoff_state, fg=handoff_color)} ({paths.handoff_dir})")
+    
+    typer.echo(f"  Config:    {config_path}")
+    
+    typer.secho("\nDetected source agents:", bold=True)
     if discoveries:
         for discovery in discoveries:
             selected = str(discovery.selected_session) if discovery.selected_session else "none"
-            typer.echo(f"- {discovery.adapter_name}: {selected}")
+            typer.echo(f"  - {typer.style(discovery.adapter_name, fg=typer.colors.CYAN)}: {selected}")
     else:
-        typer.echo("- none")
-    typer.echo("Available targets:")
+        typer.echo("  - none")
+        
+    typer.secho("\nAvailable targets:", bold=True)
     for target in registry.supported_targets():
         adapter = registry.get_target(target)
         launch = adapter.discover_launch(config)
-        available = "configured" if launch else "not configured"
-        typer.echo(f"- {target}: {available}")
+        available = typer.style("configured", fg=typer.colors.GREEN) if launch else "not configured"
+        typer.echo(f"  - {typer.style(target, fg=typer.colors.CYAN)}: {available}")
 
 
 @continue_app.command("gemini")
@@ -148,6 +157,58 @@ def continue_codex(
     ),
 ) -> None:
     _continue_to_target("codex", print_prompt, no_launch, include_transcript, source)
+
+
+@continue_app.command("claude")
+def continue_claude(
+    print_prompt: bool = typer.Option(
+        False,
+        "--print",
+        help="Print the generated prompt to stdout.",
+    ),
+    no_launch: bool = typer.Option(
+        False,
+        "--no-launch",
+        help="Only generate the prompt.",
+    ),
+    include_transcript: bool = typer.Option(
+        True,
+        "--include-transcript/--no-transcript",
+        help="Include transcript recovery when available.",
+    ),
+    source: str | None = typer.Option(
+        None,
+        "--from",
+        help="Explicitly choose a source agent or 'none'.",
+    ),
+) -> None:
+    _continue_to_target("claude", print_prompt, no_launch, include_transcript, source)
+
+
+@continue_app.command("opencode")
+def continue_opencode(
+    print_prompt: bool = typer.Option(
+        False,
+        "--print",
+        help="Print the generated prompt to stdout.",
+    ),
+    no_launch: bool = typer.Option(
+        False,
+        "--no-launch",
+        help="Only generate the prompt.",
+    ),
+    include_transcript: bool = typer.Option(
+        True,
+        "--include-transcript/--no-transcript",
+        help="Include transcript recovery when available.",
+    ),
+    source: str | None = typer.Option(
+        None,
+        "--from",
+        help="Explicitly choose a source agent or 'none'.",
+    ),
+) -> None:
+    _continue_to_target("opencode", print_prompt, no_launch, include_transcript, source)
 
 
 
@@ -318,7 +379,7 @@ def _confidence_rank(confidence: str) -> int:
 
 
 def _exit_with_error(message: str) -> int:
-    typer.echo(f"error: {message}", err=True)
+    typer.secho(f"error: {message}", fg=typer.colors.RED, err=True)
     return 1
 
 

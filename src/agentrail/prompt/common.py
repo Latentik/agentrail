@@ -31,32 +31,51 @@ def render_common_sections(context: HandoffContext) -> str:
         f"Branch: {git.branch or 'DETACHED'}",
         f"HEAD: {git.head or 'No commits yet'}",
         "",
+        "## Current State",
         "Git status:",
         "```text",
         git.status_short.strip() or "clean working tree",
         "```",
         "",
-        "Changed files:",
-        *_bullet_list(files.changed_files),
-        "",
-        "Untracked files:",
-        *_bullet_list(files.untracked_files),
-        "",
-        "Recent commits:",
-        *_bullet_list(git.recent_commits),
-        "",
-        f"Detected source agent: {source_name}",
-        "",
-        "Diff summary:",
+        "### Changes since last commit:",
         "```diff",
         inline_diff,
         "```",
         "",
-        "Artifacts:",
-        "- Summary: `.handoff/summary.md`",
-        "- Diff: `.handoff/diff.patch`",
-        "- Staged diff: `.handoff/staged.diff.patch`",
+        "### Recently modified files:",
+        *_bullet_list(files.changed_files),
+        "",
+        "### Untracked files:",
+        *_bullet_list(files.untracked_files),
+        "",
+        "### Recent commit history:",
+        *_bullet_list(git.recent_commits),
+        "",
+        f"## Source Agent Context (Source: {source_name})",
     ]
+    if context.transcript_excerpt:
+        lines.append("The following signals were extracted from the previous agent's session:")
+        if context.transcript_excerpt.commands:
+            lines.append("\n**Last executed commands:**")
+            lines.extend(_bullet_list(context.transcript_excerpt.commands[:5]))
+        if context.transcript_excerpt.errors:
+            lines.append("\n**Recent errors/failures:**")
+            lines.extend(_bullet_list(context.transcript_excerpt.errors[:5]))
+        if context.transcript_excerpt.verification:
+            lines.append("\n**Verification signals:**")
+            lines.extend(_bullet_list(context.transcript_excerpt.verification[:5]))
+    else:
+        lines.append("No previous transcript evidence detected. Relying on current repository state.")
+
+    lines.extend(
+        [
+            "",
+            "## Handoff Artifacts",
+            "- Summary: `.handoff/summary.md`",
+            "- Diff: `.handoff/diff.patch`",
+            "- Staged diff: `.handoff/staged.diff.patch`",
+        ]
+    )
     if transcript_path:
         relative_path = _relative_artifact_path(git.repo_root, transcript_path)
         lines.append(f"- Transcript excerpt: `{relative_path}`")

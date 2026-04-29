@@ -36,7 +36,7 @@ def test_init_creates_handoff_tree(tmp_path: Path, monkeypatch) -> None:
     assert (home / ".agentrail" / "config.json").exists()
 
 
-def test_continue_gemini_print_without_binary(tmp_path: Path, monkeypatch) -> None:
+def test_status_output(tmp_path: Path, monkeypatch) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     home = tmp_path / "home"
@@ -44,20 +44,36 @@ def test_continue_gemini_print_without_binary(tmp_path: Path, monkeypatch) -> No
     _git(repo, "init")
     _git(repo, "config", "user.email", "test@example.com")
     _git(repo, "config", "user.name", "Test User")
-    (repo / "app.py").write_text("print('hi')\n", encoding="utf-8")
-    _git(repo, "add", "app.py")
-    _git(repo, "commit", "-m", "init")
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.chdir(repo)
+
+    result = runner.invoke(app, ["status"], catch_exceptions=False, env={"HOME": str(home)})
+
+    assert result.exit_code == 0
+    assert "Project Status" in result.stdout
+    assert "Branch:" in result.stdout
+    assert "claude: not configured" in result.stdout
+    assert "opencode: not configured" in result.stdout
+
+
+def test_continue_claude_print(tmp_path: Path, monkeypatch) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+    _git(repo, "init")
+    _git(repo, "config", "user.email", "test@example.com")
+    _git(repo, "config", "user.name", "Test User")
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.chdir(repo)
 
     result = runner.invoke(
         app,
-        ["continue", "gemini", "--print", "--no-launch"],
+        ["continue", "claude", "--print", "--no-launch"],
         catch_exceptions=False,
         env={"HOME": str(home)},
     )
 
     assert result.exit_code == 0
-    assert "Do not restart from scratch" in result.stdout
-    handoff = json.loads((repo / ".handoff" / "handoff.json").read_text(encoding="utf-8"))
-    assert handoff["artifacts"]["prompts"]["gemini"].endswith("next-prompt.gemini.md")
+    assert "claude" in result.stdout
+    assert "## Current State" in result.stdout

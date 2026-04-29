@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 from agentrail.adapters.base import AgentAdapter
+from agentrail.adapters.claude import ClaudeAdapter
 from agentrail.adapters.codex import CodexAdapter
 from agentrail.adapters.gemini import GeminiAdapter
+from agentrail.adapters.opencode import OpenCodeAdapter
 from agentrail.errors import UnsupportedTargetError
 
 
 class AgentRegistry:
     def __init__(self) -> None:
-        adapters: list[AgentAdapter] = [CodexAdapter(), GeminiAdapter()]
+        adapters: list[AgentAdapter] = [
+            CodexAdapter(),
+            GeminiAdapter(),
+            ClaudeAdapter(),
+            OpenCodeAdapter(),
+        ]
         self._adapters = {adapter.name: adapter for adapter in adapters}
 
     def all_source_adapters(self) -> list[AgentAdapter]:
