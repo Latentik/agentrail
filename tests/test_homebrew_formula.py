@@ -17,7 +17,7 @@ def test_formula_render_can_be_formatted_to_path(tmp_path: Path) -> None:
     output = tmp_path / "agentrail.rb"
     output.write_text(
         FORMULA_TEMPLATE.format(
-            version="0.1.3",
+            version="0.1.4",
             owner_repo="Latentik/agentrail",
             arm_url="https://example.invalid/arm.tgz",
             arm_sha="a" * 64,
@@ -25,5 +25,5 @@ def test_formula_render_can_be_formatted_to_path(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     rendered = output.read_text(encoding="utf-8")
-    assert 'version "0.1.3"' in rendered
+    assert 'version "0.1.4"' in rendered
     assert 'homepage "https://github.com/Latentik/agentrail"' in rendered

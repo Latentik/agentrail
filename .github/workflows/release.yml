@@ -69,8 +69,10 @@ jobs:
         env:
           VERSION: ${{ needs.validate.outputs.version }}
         run: |
-          tar -C dist -czf "agentrail-v${VERSION}-macos-arm64.tar.gz" agentrail
-          shasum -a 256 "agentrail-v${VERSION}-macos-arm64.tar.gz" > "agentrail-v${VERSION}-macos-arm64.tar.gz.sha256"
+          python scripts/build_release_bundle.py \
+            --dist-dir dist \
+            --output-dir . \
+            --version "${VERSION}"
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
