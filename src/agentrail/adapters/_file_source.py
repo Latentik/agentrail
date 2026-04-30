@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from agentrail.config import UserConfig
 from agentrail.models import (
@@ -138,7 +139,7 @@ def extract_file_excerpt(
 
 def _score_session(
     path: Path, text: str, repo_root_text: str, markers: tuple[str, ...]
-) -> tuple[str | None, str]:
+) -> tuple[Literal["high", "medium", "low"] | None, str]:
     lower = text.lower()
     if repo_root_text in text:
         return "high", "contains repo root path"
@@ -149,8 +150,8 @@ def _score_session(
     return None, ""
 
 
-def _confidence_rank(confidence: str) -> int:
-    order = {"high": 0, "medium": 1, "low": 2}
+def _confidence_rank(confidence: Literal["high", "medium", "low"]) -> int:
+    order: dict[str, int] = {"high": 0, "medium": 1, "low": 2}
     return order.get(confidence, 3)
 
 

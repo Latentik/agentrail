@@ -62,7 +62,7 @@ def excerpt_recent_text(
 
 
 def maybe_extract_structured_sections(text: str) -> dict[str, list[str]]:
-    sections = {
+    sections: dict[str, list[str]] = {
         "user": [],
         "assistant": [],
         "commands": [],

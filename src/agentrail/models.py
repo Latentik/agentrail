@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal
 
 
 @dataclass(slots=True)
@@ -52,7 +53,7 @@ class SourceMatch:
     adapter_name: str
     path: Path
     mtime: str
-    confidence: str
+    confidence: Literal["high", "medium", "low"]
     reason: str
 
 

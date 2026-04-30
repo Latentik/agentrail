@@ -7,5 +7,13 @@ wheels/
 *.egg-info
 agentrail.spec
 
+# Test and coverage artifacts
+.coverage
+.pytest_cache/
+.mypy_cache/
+
+# Local handoff state
+.handoff/
+
 # Virtual environments
 .venv

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -13,7 +14,30 @@ from agentrail import __version__
 if TYPE_CHECKING:
     from agentrail.agent_registry import AgentRegistry
     from agentrail.config import UserConfig
-    from agentrail.models import SourceDiscoveryResult
+    from agentrail.models import (
+        FileSnapshot,
+        GitSnapshot,
+        HandoffContext,
+        SourceDiscoveryResult,
+        TranscriptExcerpt,
+        WarningRecord,
+    )
+    from agentrail.paths import ProjectPaths
+
+
+@dataclass(slots=True)
+class _CaptureResult:
+    config: UserConfig
+    registry: AgentRegistry
+    git: GitSnapshot
+    files: FileSnapshot
+    project_paths: ProjectPaths
+    handoff_dir: Path
+    discoveries: list[SourceDiscoveryResult]
+    selected_discovery: SourceDiscoveryResult | None
+    transcript_excerpt: TranscriptExcerpt | None
+    summary_markdown: str
+    warnings: list[WarningRecord]
 
 app = typer.Typer(
     add_completion=False,
@@ -58,8 +82,8 @@ def init(
         Path.cwd(), include_transcript=True, skip_gitignore=skip_gitignore, dry_run=dry_run
     )
     action = "Would initialize" if dry_run else "Initialized"
-    typer.secho(f"{action} handoff state in {result['handoff_dir']}", fg=typer.colors.GREEN)
-    for warning in result["warnings"]:
+    typer.secho(f"{action} handoff state in {result.handoff_dir}", fg=typer.colors.GREEN)
+    for warning in result.warnings:
         typer.secho(f"warning: {warning.message}", fg=typer.colors.YELLOW)
 
 
@@ -81,8 +105,8 @@ def capture(
         Path.cwd(), include_transcript=True, skip_gitignore=skip_gitignore, dry_run=dry_run
     )
     action = "Would refresh" if dry_run else "Refreshed"
-    typer.secho(f"{action} handoff state in {result['handoff_dir']}", fg=typer.colors.GREEN)
-    for warning in result["warnings"]:
+    typer.secho(f"{action} handoff state in {result.handoff_dir}", fg=typer.colors.GREEN)
+    for warning in result.warnings:
         typer.secho(f"warning: {warning.message}", fg=typer.colors.YELLOW)
 
 
@@ -371,33 +395,33 @@ def _continue_to_target(
             include_transcript=include_transcript,
             source_override=source,
         )
-        adapter = result["registry"].get_target(target)
+        adapter = result.registry.get_target(target)
         context = HandoffContext(
             target=target,
-            project_name=result["git"].repo_root.name,
-            git=result["git"],
-            files=result["files"],
-            summary_markdown=result["summary_markdown"],
-            source_discoveries=result["discoveries"],
-            selected_source=result["selected_discovery"],
-            transcript_excerpt=result["transcript_excerpt"],
-            diff_path=result["handoff_dir"] / "diff.patch",
-            staged_diff_path=result["handoff_dir"] / "staged.diff.patch",
-            handoff_dir=result["handoff_dir"],
-            warnings=result["warnings"],
+            project_name=result.git.repo_root.name,
+            git=result.git,
+            files=result.files,
+            summary_markdown=result.summary_markdown,
+            source_discoveries=result.discoveries,
+            selected_source=result.selected_discovery,
+            transcript_excerpt=result.transcript_excerpt,
+            diff_path=result.handoff_dir / "diff.patch",
+            staged_diff_path=result.handoff_dir / "staged.diff.patch",
+            handoff_dir=result.handoff_dir,
+            warnings=result.warnings,
         )
         prompt = adapter.render_prompt(context)
-        prompt_path = result["handoff_dir"] / prompt.filename
+        prompt_path = result.handoff_dir / prompt.filename
         prompt_path.write_text(prompt.content, encoding="utf-8")
         write_capture_artifacts(
-            result["project_paths"],
-            result["git"],
-            result["files"],
-            result["summary_markdown"],
-            result["discoveries"],
-            result["transcript_excerpt"],
-            result["warnings"],
-            prompt_paths={target: str(prompt_path.relative_to(result["git"].repo_root))},
+            result.project_paths,
+            result.git,
+            result.files,
+            result.summary_markdown,
+            result.discoveries,
+            result.transcript_excerpt,
+            result.warnings,
+            prompt_paths={target: str(prompt_path.relative_to(result.git.repo_root))},
         )
     except AgentrailError as exc:
         raise typer.Exit(code=_exit_with_error(str(exc))) from exc
@@ -407,7 +431,7 @@ def _continue_to_target(
     typer.echo(f"Generated prompt: {prompt_path}")
     if no_launch:
         return
-    launch = adapter.discover_launch(result["config"])
+    launch = adapter.discover_launch(result.config)
     launch_result = adapter.launch(prompt_path, prompt.content, launch)
     if launch_result.command:
         typer.echo(f"Command: {' '.join(json.dumps(part) for part in launch_result.command)}")
@@ -423,7 +447,7 @@ def _capture_pipeline(
     source_override: str | None = None,
     skip_gitignore: bool = False,
     dry_run: bool = False,
-) -> dict[str, object]:
+) -> _CaptureResult:
     from agentrail.agent_registry import AgentRegistry
     from agentrail.config import load_or_create_user_config
     from agentrail.git_state import capture_git_state
@@ -485,19 +509,19 @@ def _capture_pipeline(
             warnings,
             redact=config.redaction.enabled,
         )
-    return {
-        "config": config,
-        "registry": registry,
-        "git": git,
-        "files": files,
-        "project_paths": project,
-        "handoff_dir": project.handoff_dir,
-        "discoveries": discoveries,
-        "selected_discovery": selected,
-        "transcript_excerpt": transcript_excerpt,
-        "summary_markdown": summary_markdown,
-        "warnings": warnings,
-    }
+    return _CaptureResult(
+        config=config,
+        registry=registry,
+        git=git,
+        files=files,
+        project_paths=project,
+        handoff_dir=project.handoff_dir,
+        discoveries=discoveries,
+        selected_discovery=selected,
+        transcript_excerpt=transcript_excerpt,
+        summary_markdown=summary_markdown,
+        warnings=warnings,
+    )
 
 
 

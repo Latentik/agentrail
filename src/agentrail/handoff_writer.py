@@ -130,7 +130,9 @@ def write_capture_artifacts(
             SourceAgentInfo(
                 name=item.adapter_name,
                 session_path=str(item.selected_session) if item.selected_session else None,
-                confidence=item.matched_sessions[0].confidence if item.matched_sessions else None,
+                confidence=(
+                    item.matched_sessions[0].confidence if item.matched_sessions else None
+                ),
                 reason=item.matched_sessions[0].reason if item.matched_sessions else None,
             )
             for item in source_discoveries
