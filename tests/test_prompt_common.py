@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from agentrail.models import FileSnapshot, GitSnapshot, HandoffContext, TranscriptExcerpt, WarningRecord
+from agentrail.models import FileSnapshot, GitSnapshot, HandoffContext, TranscriptExcerpt
 from agentrail.prompt.common import (
     _choose_diff_presentation,
     _diff_file_summary,
@@ -43,7 +43,8 @@ def test_diff_presentation_small_returns_inline() -> None:
 
 def test_diff_presentation_large_returns_file_list() -> None:
     # A diff that exceeds 30% of budget (~1200 bytes per file * 200 = many tokens)
-    big_diff = "\n".join([f"diff --git a/file{i}.py b/file{i}.py\n+{'x' * 100}" for i in range(200)])
+    lines = [f"diff --git a/file{i}.py b/file{i}.py\n+{'x' * 100}" for i in range(200)]
+    big_diff = "\n".join(lines)
     result = _choose_diff_presentation(big_diff, budget=4_000)  # tiny budget so 30% is tiny
     assert "Large diff truncated to file list" in result
 

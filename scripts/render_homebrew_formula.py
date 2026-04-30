@@ -46,17 +46,19 @@ def main() -> int:
 
     linux_blocks = ""
     if args.linux_x86_64_url and args.linux_x86_64_sha:
-        linux_blocks += '\n  on_linux do\n    on_intel do\n      url "{}"\n      sha256 "{}"\n    end\n  end'.format(
-            args.linux_x86_64_url, args.linux_x86_64_sha
+        linux_blocks += (
+            f'\n  on_linux do\n    on_intel do\n      url "{args.linux_x86_64_url}"\n'
+            f'      sha256 "{args.linux_x86_64_sha}"\n    end\n  end'
         )
     if args.linux_arm64_url and args.linux_arm64_sha:
-        linux_blocks += '\n  on_linux do\n    on_arm do\n      url "{}"\n      sha256 "{}"\n    end\n  end'.format(
-            args.linux_arm64_url, args.linux_arm64_sha
+        linux_blocks += (
+            f'\n  on_linux do\n    on_arm do\n      url "{args.linux_arm64_url}"\n'
+            f'      sha256 "{args.linux_arm64_sha}"\n    end\n  end'
         )
 
-    output = Path(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
         FORMULA_TEMPLATE.format(
             version=args.version,
             owner_repo=args.owner_repo,

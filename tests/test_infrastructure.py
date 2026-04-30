@@ -24,7 +24,7 @@ class TestGitState:
         try:
             from agentrail.git_state import capture_git_state
             capture_git_state(tmp_path)
-            assert False, "expected error"
+            raise AssertionError("expected error")
         except NotGitRepositoryError:
             pass
 
@@ -61,7 +61,7 @@ class TestErrors:
         registry = AgentRegistry()
         try:
             registry.get_target("nonexistent")
-            assert False, "expected error"
+            raise AssertionError("expected error")
         except UnsupportedTargetError as e:
             assert "nonexistent" in str(e)
 

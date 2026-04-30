@@ -29,7 +29,11 @@ def test_formula_render_can_be_formatted_to_path(tmp_path: Path) -> None:
 
 
 def test_formula_with_linux_blocks(tmp_path: Path) -> None:
-    linux = '\n  on_linux do\n    on_intel do\n      url "https://example.invalid/linux.tgz"\n      sha256 "b" * 64\n    end\n  end'
+    linux = (
+        '\n  on_linux do\n    on_intel do\n'
+        '      url "https://example.invalid/linux.tgz"\n'
+        '      sha256 "b" * 64\n    end\n  end'
+    )
     output = tmp_path / "agentrail.rb"
     output.write_text(
         FORMULA_TEMPLATE.format(

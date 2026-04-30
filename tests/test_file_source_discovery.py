@@ -150,7 +150,8 @@ class TestAdapterDiscoveryIntegration:
     def test_opencode_adapter_discovery(self, tmp_path: Path) -> None:
         sessions = tmp_path / ".opencode" / "sessions"
         sessions.mkdir(parents=True)
-        (sessions / "session.jsonl").write_text('{"content": "opencode assistant"}\n', encoding="utf-8")
+        path = sessions / "session.jsonl"
+        path.write_text('{"content": "opencode assistant"}\n', encoding="utf-8")
         config = UserConfig(
             agents={"opencode": AgentConfig(sessions_dir=str(sessions))}
         )

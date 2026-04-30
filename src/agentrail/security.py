@@ -7,7 +7,9 @@ from pathlib import Path
 from agentrail.models import WarningRecord
 
 
-def check_gitignore(repo_root: Path, handoff_dir: str = ".handoff") -> tuple[bool, list[WarningRecord]]:
+def check_gitignore(
+    repo_root: Path, handoff_dir: str = ".handoff"
+) -> tuple[bool, list[WarningRecord]]:
     """Return (is_ignored, warnings)."""
     gitignore = repo_root / ".gitignore"
     if not gitignore.exists():

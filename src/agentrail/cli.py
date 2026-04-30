@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from agentrail.models import (
         FileSnapshot,
         GitSnapshot,
-        HandoffContext,
         SourceDiscoveryResult,
         TranscriptExcerpt,
         WarningRecord,
@@ -230,7 +229,10 @@ def status(
                 for d in discoveries
             ],
             "targets": {
-                target: ("configured" if registry.get_target(target).discover_launch(config) else "not configured")
+                target: (
+                    "configured" if registry.get_target(target).discover_launch(config)
+                    else "not configured"
+                )
                 for target in registry.supported_targets()
             },
         }
@@ -307,7 +309,8 @@ def continue_gemini(
     ),
 ) -> None:
     _continue_to_target(
-        "gemini", print_prompt, no_launch, include_transcript, source, include_agents_md, include_cursorrules
+        "gemini", print_prompt, no_launch, include_transcript, source,
+        include_agents_md, include_cursorrules,
     )
 
 
@@ -345,7 +348,8 @@ def continue_codex(
     ),
 ) -> None:
     _continue_to_target(
-        "codex", print_prompt, no_launch, include_transcript, source, include_agents_md, include_cursorrules
+        "codex", print_prompt, no_launch, include_transcript, source,
+        include_agents_md, include_cursorrules,
     )
 
 
@@ -383,7 +387,8 @@ def continue_claude(
     ),
 ) -> None:
     _continue_to_target(
-        "claude", print_prompt, no_launch, include_transcript, source, include_agents_md, include_cursorrules
+        "claude", print_prompt, no_launch, include_transcript, source,
+        include_agents_md, include_cursorrules,
     )
 
 
@@ -421,7 +426,8 @@ def continue_opencode(
     ),
 ) -> None:
     _continue_to_target(
-        "opencode", print_prompt, no_launch, include_transcript, source, include_agents_md, include_cursorrules
+        "opencode", print_prompt, no_launch, include_transcript, source,
+        include_agents_md, include_cursorrules,
     )
 
 

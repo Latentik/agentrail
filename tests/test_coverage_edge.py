@@ -60,7 +60,10 @@ class TestTranscriptExcerpt:
 
     def test_jsonl_parsing(self, tmp_path: Path) -> None:
         f = tmp_path / "session.jsonl"
-        text = json.dumps({"role": "user", "content": "hello"}) + "\n" + json.dumps({"role": "assistant", "content": "world"}) + "\n"
+        text = (
+            json.dumps({"role": "user", "content": "hello"}) + "\n"
+            + json.dumps({"role": "assistant", "content": "world"}) + "\n"
+        )
         f.write_text(text, encoding="utf-8")
         excerpt, commands, errors, verification = excerpt_recent_text(f)
         assert "hello" in excerpt or "hello" in "".join(commands + errors + verification)

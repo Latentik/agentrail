@@ -6,7 +6,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
-from agentrail.config import UserConfig
 from agentrail.models import (
     SourceDiscoveryResult,
     SourceMatch,
@@ -15,7 +14,6 @@ from agentrail.models import (
 )
 from agentrail.redaction import redact_text
 from agentrail.transcript_excerpt import excerpt_recent_text, maybe_extract_structured_sections
-
 
 DEFAULT_CONTENT_MARKERS: dict[str, tuple[str, ...]] = {
     "codex": ("codex", "assistant", "user"),
