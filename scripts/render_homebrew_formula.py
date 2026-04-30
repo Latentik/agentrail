@@ -17,6 +17,7 @@ FORMULA_TEMPLATE = '''class Agentrail < Formula
       sha256 "{arm_sha}"
     end
   end
+{linux_blocks}
 
   def install
     libexec.install Dir["*"]
@@ -36,8 +37,22 @@ def main() -> int:
     parser.add_argument("--owner-repo", required=True)
     parser.add_argument("--arm-url", required=True)
     parser.add_argument("--arm-sha", required=True)
+    parser.add_argument("--linux-x86_64-url", default="")
+    parser.add_argument("--linux-x86_64-sha", default="")
+    parser.add_argument("--linux-arm64-url", default="")
+    parser.add_argument("--linux-arm64-sha", default="")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
+
+    linux_blocks = ""
+    if args.linux_x86_64_url and args.linux_x86_64_sha:
+        linux_blocks += '\n  on_linux do\n    on_intel do\n      url "{}"\n      sha256 "{}"\n    end\n  end'.format(
+            args.linux_x86_64_url, args.linux_x86_64_sha
+        )
+    if args.linux_arm64_url and args.linux_arm64_sha:
+        linux_blocks += '\n  on_linux do\n    on_arm do\n      url "{}"\n      sha256 "{}"\n    end\n  end'.format(
+            args.linux_arm64_url, args.linux_arm64_sha
+        )
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -47,6 +62,7 @@ def main() -> int:
             owner_repo=args.owner_repo,
             arm_url=args.arm_url,
             arm_sha=args.arm_sha,
+            linux_blocks=linux_blocks,
         ),
         encoding="utf-8",
     )
