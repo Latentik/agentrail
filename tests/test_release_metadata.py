@@ -7,4 +7,4 @@ def test_tag_to_version_parses_semver_tag() -> None:
 
 
 def test_verify_tag_accepts_matching_project_version() -> None:
-    verify_tag("v0.2.1")
+    verify_tag("v0.2.2")
