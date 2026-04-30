@@ -38,4 +38,5 @@
 - [x] Improve transcript extraction and handoff fidelity
 - [x] Polish CLI UX with colored output and better status formatting
 - [x] Increase test coverage for CLI flows and new adapters
+- [x] Fix Ruff formatting/import regressions in follow-up edits
 - Security: none identified

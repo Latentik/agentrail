@@ -65,7 +65,9 @@ def render_common_sections(context: HandoffContext) -> str:
             lines.append("\n**Verification signals:**")
             lines.extend(_bullet_list(context.transcript_excerpt.verification[:5]))
     else:
-        lines.append("No previous transcript evidence detected. Relying on current repository state.")
+        lines.append(
+            "No previous transcript evidence detected. Relying on current repository state."
+        )
 
     lines.extend(
         [

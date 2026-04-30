@@ -83,7 +83,10 @@ def status() -> None:
     dirty_color = typer.colors.RED if git.dirty else typer.colors.GREEN
     typer.echo(f"  Dirty:     {typer.style('yes' if git.dirty else 'no', fg=dirty_color)}")
     
-    typer.echo(f"  Changes:   {len(files.changed_files)} changed, {len(files.untracked_files)} untracked")
+    typer.echo(
+        f"  Changes:   {len(files.changed_files)} changed, "
+        f"{len(files.untracked_files)} untracked"
+    )
     
     handoff_state = "present" if paths.handoff_dir.exists() else "missing"
     handoff_color = typer.colors.GREEN if paths.handoff_dir.exists() else typer.colors.RED
@@ -95,7 +98,8 @@ def status() -> None:
     if discoveries:
         for discovery in discoveries:
             selected = str(discovery.selected_session) if discovery.selected_session else "none"
-            typer.echo(f"  - {typer.style(discovery.adapter_name, fg=typer.colors.CYAN)}: {selected}")
+            adapter_styled = typer.style(discovery.adapter_name, fg=typer.colors.CYAN)
+            typer.echo(f"  - {adapter_styled}: {selected}")
     else:
         typer.echo("  - none")
         

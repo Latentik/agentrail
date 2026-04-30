@@ -81,7 +81,9 @@ def maybe_extract_structured_sections(text: str) -> dict[str, list[str]]:
                 data = json.loads(line)
                 if isinstance(data, dict):
                     # Try to extract the most descriptive content
-                    content = str(data.get("content") or data.get("text") or data.get("message") or line)
+                    content = str(
+                        data.get("content") or data.get("text") or data.get("message") or line
+                    )
             except json.JSONDecodeError:
                 pass
 

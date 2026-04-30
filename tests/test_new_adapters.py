@@ -1,7 +1,8 @@
 from pathlib import Path
+
 from agentrail.agent_registry import AgentRegistry
-from agentrail.config import DEFAULT_CONFIG
-from agentrail.models import HandoffContext, GitSnapshot, FileSnapshot
+from agentrail.models import FileSnapshot, GitSnapshot, HandoffContext
+
 
 def test_claude_adapter_registered():
     registry = AgentRegistry()
@@ -9,16 +10,18 @@ def test_claude_adapter_registered():
     adapter = registry.get_target("claude")
     assert adapter.name == "claude"
 
+
 def test_opencode_adapter_registered():
     registry = AgentRegistry()
     assert "opencode" in registry.supported_targets()
     adapter = registry.get_target("opencode")
     assert adapter.name == "opencode"
 
+
 def test_render_claude_prompt():
     registry = AgentRegistry()
     adapter = registry.get_target("claude")
-    
+
     git = GitSnapshot(
         repo_root=Path("/tmp/repo"),
         branch="main",
@@ -27,7 +30,7 @@ def test_render_claude_prompt():
         diff="",
         staged_diff="",
         untracked_files=[],
-        recent_commits=[]
+        recent_commits=[],
     )
     files = FileSnapshot([], [], 0, 0)
     context = HandoffContext(
@@ -42,9 +45,9 @@ def test_render_claude_prompt():
         diff_path=Path("/tmp/diff.patch"),
         staged_diff_path=Path("/tmp/staged.diff.patch"),
         handoff_dir=Path("/tmp/.handoff"),
-        warnings=[]
+        warnings=[],
     )
-    
+
     artifact = adapter.render_prompt(context)
     assert artifact.target == "claude"
     assert "claude" in artifact.filename
