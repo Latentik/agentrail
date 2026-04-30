@@ -56,7 +56,6 @@ packages = ["src/agentrail"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=agentrail --cov-report=term-missing --cov-fail-under=80"
 
 [tool.ruff]
 line-length = 100

@@ -36,7 +36,7 @@ jobs:
         run: mypy src/agentrail --ignore-missing-imports
 
       - name: Test with coverage
-        run: PYTHONPATH=src pytest -q --cov=agentrail --cov-fail-under=80
+        run: PYTHONPATH=src pytest -q --cov=src/agentrail --cov-report=term-missing --cov-fail-under=80
 
       - name: Build package
         run: python -m build
