@@ -9,6 +9,11 @@ TOKEN_PATTERNS = [
     re.compile(r"(?im)\b(api[_-]?key|access[_-]?token|secret|password)\b\s*[:=]\s*([^\s]+)"),
     re.compile(r"(?i)bearer\s+[a-z0-9._\-]+"),
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.S),
+    re.compile(r"\bgh[oprst]_[A-Za-z0-9_]{36,}\b"),
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+    re.compile(r"\bASIA[0-9A-Z]{16}\b"),
+    re.compile(r"\bsk-[A-Za-z0-9]{48,}\b"),
+    re.compile(r"\bxox[baprs]-[0-9a-zA-Z\-]{10,48}\b"),
 ]
 
 LONG_TOKEN_PATTERN = re.compile(r"\b[A-Za-z0-9_\-]{24,}\b")

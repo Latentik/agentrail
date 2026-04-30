@@ -38,6 +38,7 @@ def write_capture_artifacts(
     transcript_excerpt: TranscriptExcerpt | None,
     warnings: list[WarningRecord],
     prompt_paths: dict[str, str] | None = None,
+    redact: bool = True,
 ) -> HandoffDocument:
     ensure_handoff_dirs(paths)
     created_at = _existing_created_at(paths.handoff_dir / "handoff.json")
@@ -53,8 +54,12 @@ def write_capture_artifacts(
     files_json_path = paths.state_dir / "files.json"
     sources_json_path = paths.state_dir / "agent-sources.json"
 
-    diff_path.write_text(git.diff, encoding="utf-8")
-    staged_diff_path.write_text(git.staged_diff, encoding="utf-8")
+    from agentrail.redaction import redact_text
+
+    diff_text = redact_text(git.diff) if redact else git.diff
+    staged_diff_text = redact_text(git.staged_diff) if redact else git.staged_diff
+    diff_path.write_text(diff_text, encoding="utf-8")
+    staged_diff_path.write_text(staged_diff_text, encoding="utf-8")
     summary_path.write_text(summary_markdown, encoding="utf-8")
     commands_path.write_text(
         _simple_list_doc(

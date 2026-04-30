@@ -39,18 +39,30 @@ def main(
 
 
 @app.command()
-def init() -> None:
+def init(
+    skip_gitignore: bool = typer.Option(
+        False,
+        "--skip-gitignore",
+        help="Do not auto-append .handoff/ to .gitignore.",
+    ),
+) -> None:
     """Create local handoff state and capture current project context."""
-    result = _capture_pipeline(Path.cwd(), include_transcript=True)
+    result = _capture_pipeline(Path.cwd(), include_transcript=True, skip_gitignore=skip_gitignore)
     typer.secho(f"Initialized handoff state in {result['handoff_dir']}", fg=typer.colors.GREEN)
     for warning in result["warnings"]:
         typer.secho(f"warning: {warning.message}", fg=typer.colors.YELLOW)
 
 
 @app.command()
-def capture() -> None:
+def capture(
+    skip_gitignore: bool = typer.Option(
+        False,
+        "--skip-gitignore",
+        help="Do not auto-append .handoff/ to .gitignore.",
+    ),
+) -> None:
     """Refresh handoff artifacts for the current repository."""
-    result = _capture_pipeline(Path.cwd(), include_transcript=True)
+    result = _capture_pipeline(Path.cwd(), include_transcript=True, skip_gitignore=skip_gitignore)
     typer.secho(f"Refreshed handoff state in {result['handoff_dir']}", fg=typer.colors.GREEN)
     for warning in result["warnings"]:
         typer.secho(f"warning: {warning.message}", fg=typer.colors.YELLOW)
@@ -283,6 +295,7 @@ def _capture_pipeline(
     cwd: Path,
     include_transcript: bool,
     source_override: str | None = None,
+    skip_gitignore: bool = False,
 ) -> dict[str, object]:
     from agentrail.agent_registry import AgentRegistry
     from agentrail.config import load_or_create_user_config
@@ -290,19 +303,34 @@ def _capture_pipeline(
     from agentrail.handoff_writer import ensure_handoff_dirs, write_capture_artifacts
     from agentrail.models import WarningRecord
     from agentrail.paths import project_paths
+    from agentrail.security import append_gitignore, check_gitignore
     from agentrail.summary import render_summary
 
     config, _, _ = load_or_create_user_config()
-    git, files = capture_git_state(cwd)
+    exclude_dotenv = not config.redaction.allow_dotenv
+    git, files = capture_git_state(cwd, exclude_dotenv=exclude_dotenv)
     registry = AgentRegistry()
     project = project_paths(git.repo_root)
     ensure_handoff_dirs(project)
+    warnings: list[WarningRecord] = []
+
+    if not skip_gitignore:
+        ignored, gitignore_warnings = check_gitignore(git.repo_root)
+        warnings.extend(gitignore_warnings)
+        if not ignored:
+            append_gitignore(git.repo_root)
+            warnings.append(
+                WarningRecord(
+                    code="security.auto_gitignore",
+                    message="Added .handoff/ to .gitignore to prevent accidental commits.",
+                )
+            )
+
     discoveries = []
     if source_override != "none":
         discoveries = _discover_sources(registry, git.repo_root, config)
     selected = _select_discovery(discoveries, source_override)
     transcript_excerpt = None
-    warnings: list[WarningRecord] = []
     for discovery in discoveries:
         warnings.extend(discovery.warnings)
     if include_transcript and selected:
@@ -326,6 +354,7 @@ def _capture_pipeline(
         discoveries,
         transcript_excerpt,
         warnings,
+        redact=config.redaction.enabled,
     )
     return {
         "config": config,
