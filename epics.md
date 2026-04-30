@@ -116,7 +116,7 @@ Smarter prompt generation that respects context limits and includes relevant pro
 - [x] Add `--include-agents-md` flag to append `AGENTS.md` content to generated prompts
 - [x] Add `--include-cursorrules` flag to append `.cursorrules` content to generated prompts
 - [x] Summarize large diffs by file when inline would exceed budget
-- [ ] Add tests for context-budget truncation logic
+- [x] Add tests for context-budget truncation logic
 - Security: CWE-200 (AGENTS.md may contain internal URLs or names)
 
 ## Epic 13: Documentation
