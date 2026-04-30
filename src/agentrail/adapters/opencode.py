@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from agentrail.adapters._file_source import discover_file_sources, extract_file_excerpt
 from agentrail.adapters.base import PromptArtifact
 from agentrail.adapters.codex import _launch_command
 from agentrail.config import UserConfig
@@ -21,14 +22,16 @@ class OpenCodeAdapter:
     name = "opencode"
 
     def discover_sources(self, repo_root: Path, config: UserConfig) -> SourceDiscoveryResult | None:
-        del repo_root, config
-        return None
+        agent_config = config.agents.get(self.name)
+        if not agent_config or not agent_config.enabled or not agent_config.sessions_dir:
+            return None
+        return discover_file_sources(self.name, agent_config.sessions_dir, repo_root)
 
     def extract_excerpt(
         self, discovery: SourceDiscoveryResult, repo_root: Path, config: UserConfig
     ) -> TranscriptExcerpt | None:
-        del discovery, repo_root, config
-        return None
+        del repo_root, config
+        return extract_file_excerpt(self.name, "opencode-transcript.excerpt.md", discovery)
 
     def render_prompt(self, context: HandoffContext) -> PromptArtifact:
         return PromptArtifact(

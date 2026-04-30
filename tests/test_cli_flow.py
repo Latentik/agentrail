@@ -51,8 +51,8 @@ def test_status_output(tmp_path: Path, monkeypatch) -> None:
     assert result.exit_code == 0
     assert "Project Status" in result.stdout
     assert "Branch:" in result.stdout
-    assert "claude: not configured" in result.stdout
-    assert "opencode: not configured" in result.stdout
+    assert "claude: configured" in result.stdout
+    assert "opencode: configured" in result.stdout
 
 
 def test_continue_claude_print(tmp_path: Path, monkeypatch) -> None:

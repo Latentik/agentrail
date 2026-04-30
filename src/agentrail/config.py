@@ -37,7 +37,21 @@ DEFAULT_CONFIG = UserConfig(
             binary="codex",
             launch_args=["{prompt_text}"],
         ),
-        "gemini": AgentConfig(binary="gemini", launch_args=["{prompt_text}"]),
+        "gemini": AgentConfig(
+            sessions_dir="~/.gemini/sessions",
+            binary="gemini",
+            launch_args=["{prompt_text}"],
+        ),
+        "claude": AgentConfig(
+            sessions_dir="~/.claude/sessions",
+            binary="claude",
+            launch_args=["{prompt_text}"],
+        ),
+        "opencode": AgentConfig(
+            sessions_dir="~/.opencode/sessions",
+            binary="opencode",
+            launch_args=["{prompt_text}"],
+        ),
     }
 )
 
