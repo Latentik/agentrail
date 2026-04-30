@@ -41,7 +41,7 @@ class TestAppendGitignore:
 
 class TestRedaction:
     def test_redacts_aws_key(self) -> None:
-        text = "AKIAAAAAAAA11111111"
+        text = "AKIA1111111111111111"
         result = redact_text(text)
         assert "[REDACTED]" in result
 
