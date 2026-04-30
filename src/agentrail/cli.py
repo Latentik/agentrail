@@ -21,6 +21,8 @@ app = typer.Typer(
 )
 continue_app = typer.Typer(help="Generate target-specific continuation context.")
 app.add_typer(continue_app, name="continue")
+config_app = typer.Typer(help="Manage agentrail configuration.")
+app.add_typer(config_app, name="config")
 
 
 @app.callback(invoke_without_command=True)
@@ -45,10 +47,18 @@ def init(
         "--skip-gitignore",
         help="Do not auto-append .handoff/ to .gitignore.",
     ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Print what would be written without creating artifacts.",
+    ),
 ) -> None:
     """Create local handoff state and capture current project context."""
-    result = _capture_pipeline(Path.cwd(), include_transcript=True, skip_gitignore=skip_gitignore)
-    typer.secho(f"Initialized handoff state in {result['handoff_dir']}", fg=typer.colors.GREEN)
+    result = _capture_pipeline(
+        Path.cwd(), include_transcript=True, skip_gitignore=skip_gitignore, dry_run=dry_run
+    )
+    action = "Would initialize" if dry_run else "Initialized"
+    typer.secho(f"{action} handoff state in {result['handoff_dir']}", fg=typer.colors.GREEN)
     for warning in result["warnings"]:
         typer.secho(f"warning: {warning.message}", fg=typer.colors.YELLOW)
 
@@ -60,16 +70,104 @@ def capture(
         "--skip-gitignore",
         help="Do not auto-append .handoff/ to .gitignore.",
     ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Print what would be written without creating artifacts.",
+    ),
 ) -> None:
     """Refresh handoff artifacts for the current repository."""
-    result = _capture_pipeline(Path.cwd(), include_transcript=True, skip_gitignore=skip_gitignore)
-    typer.secho(f"Refreshed handoff state in {result['handoff_dir']}", fg=typer.colors.GREEN)
+    result = _capture_pipeline(
+        Path.cwd(), include_transcript=True, skip_gitignore=skip_gitignore, dry_run=dry_run
+    )
+    action = "Would refresh" if dry_run else "Refreshed"
+    typer.secho(f"{action} handoff state in {result['handoff_dir']}", fg=typer.colors.GREEN)
     for warning in result["warnings"]:
         typer.secho(f"warning: {warning.message}", fg=typer.colors.YELLOW)
 
 
 @app.command()
-def status() -> None:
+def clean() -> None:
+    """Remove local handoff artifacts (.handoff/)."""
+    from agentrail.errors import AgentrailError
+    from agentrail.git_state import capture_git_state
+    from agentrail.paths import project_paths
+
+    try:
+        git, _ = capture_git_state(Path.cwd())
+    except AgentrailError as exc:
+        raise typer.Exit(code=_exit_with_error(str(exc))) from exc
+
+    paths = project_paths(git.repo_root)
+    if paths.handoff_dir.exists():
+        import shutil
+
+        shutil.rmtree(paths.handoff_dir)
+        typer.secho(f"Removed {paths.handoff_dir}", fg=typer.colors.GREEN)
+    else:
+        typer.secho("No handoff artifacts to remove.", fg=typer.colors.YELLOW)
+
+
+@config_app.command("list")
+def config_list() -> None:
+    """Print the current user configuration."""
+    from agentrail.config import load_or_create_user_config
+
+    config, config_path, _ = load_or_create_user_config()
+    typer.echo(f"Config path: {config_path}")
+    typer.echo(config.model_dump_json(indent=2))
+
+
+@config_app.command("get")
+def config_get(key: str) -> None:
+    """Get a configuration value by dot-notation key (e.g., agents.claude.binary)."""
+    from agentrail.config import load_or_create_user_config
+
+    config, _, _ = load_or_create_user_config()
+    data = config.model_dump()
+    parts = key.split(".")
+    for part in parts:
+        if isinstance(data, dict) and part in data:
+            data = data[part]
+        else:
+            raise typer.Exit(code=_exit_with_error(f"Key not found: {key}"))
+    typer.echo(json.dumps(data, indent=2) if isinstance(data, (dict, list)) else data)
+
+
+@config_app.command("set")
+def config_set(key: str, value: str) -> None:
+    """Set a configuration value by dot-notation key."""
+    import json
+
+    from agentrail.config import load_or_create_user_config
+
+    config, config_path, _ = load_or_create_user_config()
+    data = config.model_dump()
+    parts = key.split(".")
+    target = data
+    for part in parts[:-1]:
+        if part not in target:
+            target[part] = {}
+        target = target[part]
+    try:
+        target[parts[-1]] = json.loads(value)
+    except json.JSONDecodeError:
+        target[parts[-1]] = value
+    from agentrail.config import UserConfig
+
+    updated = UserConfig.model_validate(data)
+    config_path.write_text(updated.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    typer.secho(f"Updated {key}", fg=typer.colors.GREEN)
+
+
+@app.command()
+def status(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Output status as JSON.",
+    ),
+) -> None:
     """Print current repository and handoff status."""
     from agentrail.agent_registry import AgentRegistry
     from agentrail.config import load_or_create_user_config
@@ -86,26 +184,54 @@ def status() -> None:
     registry = AgentRegistry()
     discoveries = _discover_sources(registry, git.repo_root, config)
     paths = project_paths(git.repo_root)
-    
+
+    if json_output:
+        import json
+
+        payload = {
+            "repo_root": str(git.repo_root),
+            "branch": git.branch,
+            "head": git.head,
+            "dirty": git.dirty,
+            "changed_files": files.changed_files,
+            "untracked_files": files.untracked_files,
+            "handoff_present": paths.handoff_dir.exists(),
+            "handoff_dir": str(paths.handoff_dir),
+            "config_path": str(config_path),
+            "source_agents": [
+                {
+                    "name": d.adapter_name,
+                    "selected": str(d.selected_session) if d.selected_session else None,
+                }
+                for d in discoveries
+            ],
+            "targets": {
+                target: ("configured" if registry.get_target(target).discover_launch(config) else "not configured")
+                for target in registry.supported_targets()
+            },
+        }
+        typer.echo(json.dumps(payload, indent=2))
+        return
+
     typer.secho("Project Status", fg=typer.colors.CYAN, bold=True)
     typer.echo(f"  Repo root: {typer.style(str(git.repo_root), fg=typer.colors.BRIGHT_WHITE)}")
     typer.echo(f"  Branch:    {typer.style(git.branch or 'DETACHED', fg=typer.colors.MAGENTA)}")
     typer.echo(f"  HEAD:      {typer.style(git.head or 'No commits yet', fg=typer.colors.YELLOW)}")
-    
+
     dirty_color = typer.colors.RED if git.dirty else typer.colors.GREEN
     typer.echo(f"  Dirty:     {typer.style('yes' if git.dirty else 'no', fg=dirty_color)}")
-    
+
     typer.echo(
         f"  Changes:   {len(files.changed_files)} changed, "
         f"{len(files.untracked_files)} untracked"
     )
-    
+
     handoff_state = "present" if paths.handoff_dir.exists() else "missing"
     handoff_color = typer.colors.GREEN if paths.handoff_dir.exists() else typer.colors.RED
     typer.echo(f"  Handoff:   {typer.style(handoff_state, fg=handoff_color)} ({paths.handoff_dir})")
-    
+
     typer.echo(f"  Config:    {config_path}")
-    
+
     typer.secho("\nDetected source agents:", bold=True)
     if discoveries:
         for discovery in discoveries:
@@ -114,7 +240,7 @@ def status() -> None:
             typer.echo(f"  - {adapter_styled}: {selected}")
     else:
         typer.echo("  - none")
-        
+
     typer.secho("\nAvailable targets:", bold=True)
     for target in registry.supported_targets():
         adapter = registry.get_target(target)
@@ -296,6 +422,7 @@ def _capture_pipeline(
     include_transcript: bool,
     source_override: str | None = None,
     skip_gitignore: bool = False,
+    dry_run: bool = False,
 ) -> dict[str, object]:
     from agentrail.agent_registry import AgentRegistry
     from agentrail.config import load_or_create_user_config
@@ -311,10 +438,11 @@ def _capture_pipeline(
     git, files = capture_git_state(cwd, exclude_dotenv=exclude_dotenv)
     registry = AgentRegistry()
     project = project_paths(git.repo_root)
-    ensure_handoff_dirs(project)
+    if not dry_run:
+        ensure_handoff_dirs(project)
     warnings: list[WarningRecord] = []
 
-    if not skip_gitignore:
+    if not skip_gitignore and not dry_run:
         ignored, gitignore_warnings = check_gitignore(git.repo_root)
         warnings.extend(gitignore_warnings)
         if not ignored:
@@ -346,16 +474,17 @@ def _capture_pipeline(
         transcript_excerpt,
         warnings,
     )
-    write_capture_artifacts(
-        project,
-        git,
-        files,
-        summary_markdown,
-        discoveries,
-        transcript_excerpt,
-        warnings,
-        redact=config.redaction.enabled,
-    )
+    if not dry_run:
+        write_capture_artifacts(
+            project,
+            git,
+            files,
+            summary_markdown,
+            discoveries,
+            transcript_excerpt,
+            warnings,
+            redact=config.redaction.enabled,
+        )
     return {
         "config": config,
         "registry": registry,
