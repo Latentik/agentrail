@@ -4,6 +4,7 @@ import json
 import subprocess
 from pathlib import Path
 
+from agentrail.prompt.common import _choose_diff_presentation
 from typer.testing import CliRunner
 
 from agentrail.cli import app
@@ -134,3 +135,17 @@ def test_config_get_and_set(tmp_path: Path, monkeypatch) -> None:
     )
     assert get_after.exit_code == 0
     assert "claude-code" in get_after.stdout
+
+
+def test_diff_presentation_small_diff_inlined() -> None:
+    diff = "diff --git a/file.py b/file.py\n+foo\n"
+    result = _choose_diff_presentation(diff, budget=64_000)
+    assert "diff --git" in result
+
+
+def test_diff_presentation_large_diff_file_list() -> None:
+    lines = ["diff --git a/file{}.py b/file{}.py\n+foo\n".format(i, i) for i in range(5000)]
+    diff = "\n".join(lines)
+    result = _choose_diff_presentation(diff, budget=64_000)
+    assert "Large diff truncated to file list" in result
+    assert "file0.py" in result
