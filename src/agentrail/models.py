@@ -106,3 +106,5 @@ class HandoffContext:
     staged_diff_path: Path
     handoff_dir: Path
     warnings: list[WarningRecord] = field(default_factory=list)
+    include_agents_md: bool = False
+    include_cursorrules: bool = False

@@ -8,6 +8,12 @@ from agentrail.git_state import diff_summary
 from agentrail.models import HandoffContext
 
 MAX_INLINE_DIFF_BYTES = 12_000
+TARGET_TOKEN_BUDGETS: dict[str, int] = {
+    "gemini": 64_000,
+    "claude": 128_000,
+    "codex": 128_000,
+    "opencode": 128_000,
+}
 
 
 def render_common_sections(context: HandoffContext) -> str:
@@ -17,11 +23,8 @@ def render_common_sections(context: HandoffContext) -> str:
     if context.transcript_excerpt:
         transcript_path = context.handoff_dir / context.transcript_excerpt.artifact_name
     diff_text = git.diff
-    inline_diff = (
-        diff_summary(diff_text)
-        if len(diff_text.encode("utf-8")) <= MAX_INLINE_DIFF_BYTES
-        else "Diff too large to inline. Read `.handoff/diff.patch`."
-    )
+    budget = TARGET_TOKEN_BUDGETS.get(context.target, 64_000)
+    inline_diff = _choose_diff_presentation(diff_text, budget)
     source_name = "none detected"
     if context.selected_source:
         source_name = context.selected_source.adapter_name
@@ -69,6 +72,16 @@ def render_common_sections(context: HandoffContext) -> str:
             "No previous transcript evidence detected. Relying on current repository state."
         )
 
+    if context.include_agents_md:
+        agents_md = _read_project_file(git.repo_root, "AGENTS.md")
+        if agents_md:
+            lines.extend(["", "## AGENTS.md", agents_md])
+
+    if context.include_cursorrules:
+        cursorrules = _read_project_file(git.repo_root, ".cursorrules")
+        if cursorrules:
+            lines.extend(["", "## .cursorrules", cursorrules])
+
     lines.extend(
         [
             "",
@@ -89,6 +102,38 @@ def render_common_sections(context: HandoffContext) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+def _choose_diff_presentation(diff_text: str, budget: int) -> str:
+    diff_bytes = len(diff_text.encode("utf-8"))
+    estimated_tokens = diff_bytes // 4
+    if diff_bytes <= MAX_INLINE_DIFF_BYTES and estimated_tokens <= budget * 0.1:
+        return diff_summary(diff_text)
+    if estimated_tokens > budget * 0.3:
+        return _diff_file_summary(diff_text)
+    return "Diff too large to inline. Read `.handoff/diff.patch`."
+
+
+def _diff_file_summary(diff_text: str) -> str:
+    files: list[str] = []
+    for line in diff_text.splitlines():
+        if line.startswith("diff --git "):
+            parts = line.split()
+            if len(parts) >= 4:
+                files.append(parts[-2][2:])  # strip a/ prefix
+    if not files:
+        return "Diff too large to inline. Read `.handoff/diff.patch`."
+    return "Large diff truncated to file list:\n" + "\n".join(f"- {f}" for f in files[:50])
+
+
+def _read_project_file(repo_root: Path, filename: str) -> str | None:
+    path = repo_root / filename
+    if path.exists():
+        try:
+            return path.read_text(encoding="utf-8")
+        except OSError:
+            pass
+    return None
 
 
 def _bullet_list(items: list[str]) -> list[str]:

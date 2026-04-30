@@ -295,8 +295,20 @@ def continue_gemini(
         "--from",
         help="Explicitly choose a source agent or 'none'.",
     ),
+    include_agents_md: bool = typer.Option(
+        False,
+        "--include-agents-md",
+        help="Include AGENTS.md content in the prompt.",
+    ),
+    include_cursorrules: bool = typer.Option(
+        False,
+        "--include-cursorrules",
+        help="Include .cursorrules content in the prompt.",
+    ),
 ) -> None:
-    _continue_to_target("gemini", print_prompt, no_launch, include_transcript, source)
+    _continue_to_target(
+        "gemini", print_prompt, no_launch, include_transcript, source, include_agents_md, include_cursorrules
+    )
 
 
 @continue_app.command("codex")
@@ -321,8 +333,20 @@ def continue_codex(
         "--from",
         help="Explicitly choose a source agent or 'none'.",
     ),
+    include_agents_md: bool = typer.Option(
+        False,
+        "--include-agents-md",
+        help="Include AGENTS.md content in the prompt.",
+    ),
+    include_cursorrules: bool = typer.Option(
+        False,
+        "--include-cursorrules",
+        help="Include .cursorrules content in the prompt.",
+    ),
 ) -> None:
-    _continue_to_target("codex", print_prompt, no_launch, include_transcript, source)
+    _continue_to_target(
+        "codex", print_prompt, no_launch, include_transcript, source, include_agents_md, include_cursorrules
+    )
 
 
 @continue_app.command("claude")
@@ -347,8 +371,20 @@ def continue_claude(
         "--from",
         help="Explicitly choose a source agent or 'none'.",
     ),
+    include_agents_md: bool = typer.Option(
+        False,
+        "--include-agents-md",
+        help="Include AGENTS.md content in the prompt.",
+    ),
+    include_cursorrules: bool = typer.Option(
+        False,
+        "--include-cursorrules",
+        help="Include .cursorrules content in the prompt.",
+    ),
 ) -> None:
-    _continue_to_target("claude", print_prompt, no_launch, include_transcript, source)
+    _continue_to_target(
+        "claude", print_prompt, no_launch, include_transcript, source, include_agents_md, include_cursorrules
+    )
 
 
 @continue_app.command("opencode")
@@ -373,8 +409,20 @@ def continue_opencode(
         "--from",
         help="Explicitly choose a source agent or 'none'.",
     ),
+    include_agents_md: bool = typer.Option(
+        False,
+        "--include-agents-md",
+        help="Include AGENTS.md content in the prompt.",
+    ),
+    include_cursorrules: bool = typer.Option(
+        False,
+        "--include-cursorrules",
+        help="Include .cursorrules content in the prompt.",
+    ),
 ) -> None:
-    _continue_to_target("opencode", print_prompt, no_launch, include_transcript, source)
+    _continue_to_target(
+        "opencode", print_prompt, no_launch, include_transcript, source, include_agents_md, include_cursorrules
+    )
 
 
 
@@ -384,6 +432,8 @@ def _continue_to_target(
     no_launch: bool,
     include_transcript: bool,
     source: str | None,
+    include_agents_md: bool = False,
+    include_cursorrules: bool = False,
 ) -> None:
     from agentrail.errors import AgentrailError
     from agentrail.handoff_writer import write_capture_artifacts
@@ -409,6 +459,8 @@ def _continue_to_target(
             staged_diff_path=result.handoff_dir / "staged.diff.patch",
             handoff_dir=result.handoff_dir,
             warnings=result.warnings,
+            include_agents_md=include_agents_md,
+            include_cursorrules=include_cursorrules,
         )
         prompt = adapter.render_prompt(context)
         prompt_path = result.handoff_dir / prompt.filename
